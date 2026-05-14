@@ -1,0 +1,18 @@
+# Local agent and IDE files
+AGENTS.md
+CLAUDE.md
+.claude/
+.idea/
+.omx/
+.playwright-mcp/
+
+# Local documentation and generated planning artifacts
+docs/
+
+# Runtime logs
+logs/
+*.log
+
+# Build outputs
+target/
+**/target/

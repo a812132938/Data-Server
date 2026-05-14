@@ -1,0 +1,13 @@
+* text=auto
+
+*.java text
+*.xml text
+*.yml text
+*.yaml text
+*.md text
+*.sql text
+*.lua text
+*.json text
+*.properties text
+*.gitignore text
+*.gitattributes text
