@@ -1,0 +1,31 @@
+// 主题色
+$primary-color: #2878FF;
+$success-color: #52C41A;
+$warning-color: #FAAD14;
+$danger-color: #FF4D4F;
+$info-color: #909399;
+
+// 文字颜色
+$text-primary: #1D2129;
+$text-regular: #4E5969;
+$text-secondary: #86909C;
+$text-placeholder: #C9CDD4;
+
+// 背景颜色
+$bg-color: #F2F3F5;
+$bg-white: #FFFFFF;
+$bg-sidebar: #001529;
+$bg-sidebar-active: #0050B3;
+
+// 边框
+$border-color: #E5E6EB;
+$border-radius: 4px;
+
+// 布局尺寸
+$topbar-height: 56px;
+$sidebar-width: 220px;
+$sidebar-collapsed-width: 64px;
+$content-width: 1220px;
+
+// Element Plus 主题覆盖
+$--color-primary: $primary-color;

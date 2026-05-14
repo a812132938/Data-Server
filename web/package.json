@@ -1,0 +1,35 @@
+{
+  "name": "data-service-platform",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vue-tsc -b && vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@element-plus/icons-vue": "^2.3.2",
+    "@vueuse/core": "^10.11.1",
+    "axios": "^1.15.0",
+    "dayjs": "^1.11.20",
+    "echarts": "^5.6.0",
+    "element-plus": "^2.13.6",
+    "monaco-editor": "^0.47.0",
+    "nprogress": "^0.2.0",
+    "pinia": "^2.3.1",
+    "sql-formatter": "^15.7.3",
+    "vue": "^3.5.32",
+    "vue-echarts": "^6.7.3",
+    "vue-router": "^4.6.4"
+  },
+  "devDependencies": {
+    "@types/nprogress": "^0.2.3",
+    "@vitejs/plugin-vue": "^5.2.4",
+    "sass": "^1.99.0",
+    "typescript": "^6.0.2",
+    "unplugin-auto-import": "^20.3.0",
+    "unplugin-vue-components": "^30.0.0",
+    "vue-tsc": "^3.2.6"
+  }
+}

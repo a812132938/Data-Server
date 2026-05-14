@@ -1,0 +1,13 @@
+node_modules/
+dist/
+docs/
+.vite/
+.idea/
+.omx/
+.playwright-mcp/
+
+*.log
+*.tsbuildinfo
+
+.env.local
+.env.*.local
