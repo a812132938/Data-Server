@@ -1,0 +1,6 @@
+.git
+.omx
+.playwright-mcp
+.idea
+logs
+**/target

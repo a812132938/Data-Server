@@ -93,6 +93,44 @@ Data Server 是一个前后端一体的数据服务平台，用于把受管理�
 
 ## 快速启动
 
+### 方式一：Docker Compose 一键启动
+
+```bash
+docker compose up -d --build
+```
+
+默认会启动以下服务：
+
+| 服务 | 容器端口 | 本机地址 |
+| --- | --- | --- |
+| Web 管理台 | `80` | `http://localhost:3000` |
+| Admin | `8080` | `http://localhost:8080` |
+| Gateway | `8081` | `http://localhost:8081` |
+| MySQL | `3306` | `localhost:3306` |
+| Redis | `6379` | `localhost:6379` |
+
+首次启动时 Admin 会通过 Flyway 初始化 `data_server` 数据库。启动后可访问：
+
+- 管理台：`http://localhost:3000`
+- Admin API 文档：`http://localhost:8080/doc.html`
+- Gateway：`http://localhost:8081/gateway/{api-path}`
+
+停止服务：
+
+```bash
+docker compose down
+```
+
+如果需要同时删除 MySQL/Redis 数据卷：
+
+```bash
+docker compose down -v
+```
+
+说明：当前前端源码存在若干 TypeScript 类型检查问题，Docker 镜像构建阶段使用 `vite build` 输出静态资源，避免一键体验被 `vue-tsc` 阻塞。常规本地构建仍以 `npm run build` 为准。
+
+### 方式二：本地手动启动
+
 ### 1. 初始化数据库
 
 先创建主库：
@@ -237,7 +275,7 @@ http://localhost:3000
 
 ## Roadmap
 
-- [ ] Docker Compose 一键体验环境
+- [x] Docker Compose 一键体验环境
 - [ ] 示例数据源和完整演示数据
 - [ ] Gateway 调用示例和 Postman/Apifox 集合
 - [ ] English README

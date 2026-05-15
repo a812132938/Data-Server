@@ -1,0 +1,7 @@
+.git
+.omx
+.playwright-mcp
+.idea
+node_modules
+dist
+*.tsbuildinfo
