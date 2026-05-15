@@ -305,7 +305,6 @@ http://localhost:3000
 - [后端说明](server/README.md)
 - [前端说明](web/README.md)
 
-## 作者
+## 作者邮箱
 
-黄昌东
-邮箱：`h1y2f3456@gmail.com`
+`h1y2f3456@gmail.com`

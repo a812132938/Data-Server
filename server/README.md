@@ -176,7 +176,6 @@ CREATE DATABASE data_server DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_genera
 | 监控 | 调用统计、监控看板、告警规则和通知 |
 | 文档 | Knife4j API 文档 |
 
-## 作者
+## 作者邮箱
 
-黄昌东  
-邮箱：`h1y2f3456@gmail.com`
+`h1y2f3456@gmail.com`
