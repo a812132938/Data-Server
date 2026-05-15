@@ -55,6 +55,12 @@ Data Server 是一个前后端一体的数据服务平台，用于把受管理�
 
 ![API 定义](docs/assets/showcase/api-list-showcase.png)
 
+### 多关联表配置
+
+支持在 API 创建向导中可视化配置主表、关联表、JOIN 条件与输出字段，并生成可预览的 SQL。
+
+![多关联表配置](docs/assets/showcase/multi-table-join-config.png)
+
 ### 数据源管理
 
 ![数据源管理](docs/assets/showcase/datasources-showcase.png)
