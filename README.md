@@ -1,8 +1,30 @@
 # Data Server 数据服务平台
 
-Data Server 是一个前后端一体的数据服务平台，用于把受管理的数据源查询发布为 HTTP API，并通过管理端和网关完成 API 设计、应用授权、认证鉴权、限流、执行、脱敏、日志和监控。
+![License](https://img.shields.io/badge/license-Apache--2.0-blue)
+![Java](https://img.shields.io/badge/Java-8-orange)
+![Spring Boot](https://img.shields.io/badge/Spring%20Boot-2.5.15-6DB33F)
+![Vue](https://img.shields.io/badge/Vue-3-42B883)
+![TypeScript](https://img.shields.io/badge/TypeScript-6.x-3178C6)
+
+Data Server 是一个前后端一体的数据服务平台，用于把受管理的 SQL 查询发布成带鉴权、限流、脱敏、日志和监控的 HTTP API。
+
+![Data Server showcase](docs/assets/showcase/readme-hero.png)
 
 本仓库包含后端 Spring Boot 多模块工程和前端 Vue 管理台。根目录 README 负责说明整体架构、快速启动路径和前后端协作关系；更细的模块说明见 [server/README.md](server/README.md) 和 [web/README.md](web/README.md)。
+
+## 适用场景
+
+- 内部数据平台需要把数据库查询快速开放给前端、BI、运营后台或任务系统。
+- 团队不想为每个数据查询接口重复编写 Controller、鉴权、限流、日志和脱敏逻辑。
+- 数据接口需要经过应用注册、凭证管理、授权申请、审批和网关统一调用。
+- API 生命周期需要被平台化管理，包括草稿、发布、测试、下线、版本快照和回滚。
+
+## 为什么值得关注
+
+- **从 SQL 到 API**：通过管理端配置 SQL 模板、参数和响应字段，网关统一发布为 HTTP API。
+- **治理能力内置**：认证、鉴权、限流、脱敏、调用日志、监控和告警不是后补脚本，而是平台主流程。
+- **前后端完整闭环**：仓库同时包含 Vue 管理台、Admin API、Gateway 和共享 Runtime。
+- **适合二次开发**：模块边界清晰，适合继续扩展数据库类型、权限模型、审批流和部署方式。
 
 ## 项目组成
 
@@ -22,6 +44,20 @@ Data Server 是一个前后端一体的数据服务平台，用于把受管理�
 - 应用与授权：维护调用方应用、AppKey/AppCode 凭证、API 授权申请和审批流程。
 - 网关调用：统一入口处理认证、鉴权、限流、参数校验、SQL 执行、结果脱敏和调用日志。
 - 运行治理：提供调用日志、统计看板、告警规则、通知和 Knife4j/OpenAPI 文档。
+
+## 界面预览
+
+### 监控仪表盘
+
+![监控仪表盘](docs/assets/showcase/dashboard-showcase.png)
+
+### API 生命周期管理
+
+![API 定义](docs/assets/showcase/api-list-showcase.png)
+
+### 数据源管理
+
+![数据源管理](docs/assets/showcase/datasources-showcase.png)
 
 ## 技术栈
 
@@ -198,6 +234,15 @@ http://localhost:3000
 | Gateway | `server/logs/data-server-gateway` |
 
 日志按 `all.log`、`info.log`、`warn.log`、`error.log` 拆分。敏感字段、密钥、token、签名和解密密码不应写入日志。
+
+## Roadmap
+
+- [ ] Docker Compose 一键体验环境
+- [ ] 示例数据源和完整演示数据
+- [ ] Gateway 调用示例和 Postman/Apifox 集合
+- [ ] English README
+- [ ] 更多数据库类型适配
+- [ ] OpenAPI 导出和 SDK 生成
 
 ## 更多文档
 
