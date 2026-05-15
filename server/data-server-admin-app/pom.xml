@@ -28,6 +28,17 @@
     </dependencies>
 
     <build>
+        <resources>
+            <resource>
+                <directory>src/main/resources</directory>
+            </resource>
+            <resource>
+                <directory>../data-server-runtime/src/main/resources</directory>
+                <includes>
+                    <include>db/migration/**</include>
+                </includes>
+            </resource>
+        </resources>
         <finalName>data-server-admin</finalName>
         <plugins>
             <plugin>

@@ -11,9 +11,10 @@ services:
       - --collation-server=utf8mb4_general_ci
       - --default-time-zone=+08:00
     ports:
-      - "3306:3306"
+      - "${MYSQL_PUBLISHED_PORT:-3306}:3306"
     volumes:
       - mysql-data:/var/lib/mysql
+      - ./server/data-server-runtime/src/main/resources/db/migration/V1__init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-pHcd123.@"]
       interval: 10s
@@ -25,7 +26,7 @@ services:
     image: redis:7-alpine
     container_name: data-server-redis
     ports:
-      - "6379:6379"
+      - "${REDIS_PUBLISHED_PORT:-6379}:6379"
     volumes:
       - redis-data:/data
     healthcheck:
@@ -48,6 +49,7 @@ services:
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/data_server?serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
       SPRING_DATASOURCE_USERNAME: root
       SPRING_DATASOURCE_PASSWORD: Hcd123.@
+      SPRING_FLYWAY_ENABLED: false
       REDIS_HOST: redis
       REDIS_PORT: 6379
       JWT_SECRET_KEY: change-me-dev-jwt-secret-key-32ch
@@ -55,7 +57,7 @@ services:
       LOG_PATH: /app/logs/data-server-admin
       TZ: Asia/Shanghai
     ports:
-      - "8080:8080"
+      - "${ADMIN_PUBLISHED_PORT:-8080}:8080"
     depends_on:
       mysql:
         condition: service_healthy
@@ -85,7 +87,7 @@ services:
       LOG_PATH: /app/logs/data-server-gateway
       TZ: Asia/Shanghai
     ports:
-      - "8081:8081"
+      - "${GATEWAY_PUBLISHED_PORT:-8081}:8081"
     depends_on:
       mysql:
         condition: service_healthy
@@ -101,9 +103,11 @@ services:
     build:
       context: ./web
       dockerfile: Dockerfile
+      args:
+        NPM_REGISTRY: ${NPM_REGISTRY:-https://registry.npmmirror.com}
     container_name: data-server-web
     ports:
-      - "3000:80"
+      - "${WEB_PUBLISHED_PORT:-3000}:80"
     depends_on:
       - admin
       - gateway

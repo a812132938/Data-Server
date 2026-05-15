@@ -109,7 +109,7 @@ docker compose up -d --build
 | MySQL | `3306` | `localhost:3306` |
 | Redis | `6379` | `localhost:6379` |
 
-首次启动时 Admin 会通过 Flyway 初始化 `data_server` 数据库。启动后可访问：
+首次启动时 MySQL 容器会执行 `server/data-server-runtime/src/main/resources/db/migration/V1__init.sql` 初始化 `data_server` 数据库。启动后可访问：
 
 - 管理台：`http://localhost:3000`
 - Admin API 文档：`http://localhost:8080/doc.html`
@@ -125,6 +125,18 @@ docker compose down
 
 ```bash
 docker compose down -v
+```
+
+如果本机端口已被占用，可以覆盖宿主机映射端口：
+
+```bash
+MYSQL_PUBLISHED_PORT=13306 REDIS_PUBLISHED_PORT=16379 docker compose up -d --build
+```
+
+Web 镜像构建默认使用 `https://registry.npmmirror.com` 安装 npm 依赖。如需改回官方源：
+
+```bash
+NPM_REGISTRY=https://registry.npmjs.org docker compose build web
 ```
 
 说明：当前前端源码存在若干 TypeScript 类型检查问题，Docker 镜像构建阶段使用 `vite build` 输出静态资源，避免一键体验被 `vue-tsc` 阻塞。常规本地构建仍以 `npm run build` 为准。
