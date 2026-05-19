@@ -19,7 +19,7 @@ import java.util.UUID;
 public class GatewayApiCaller {
 
     // ========== 请修改以下配置 ==========
-    private static final String BASE_URL = "http://localhost:8080";
+    private static final String BASE_URL = "http://localhost:8081";
     private static final String API_PATH = "/gateway/test";   // 改成你的API路径
 
     // AppKey 签名方式所需
@@ -32,11 +32,11 @@ public class GatewayApiCaller {
 
     public static void main(String[] args) {
         System.out.println("===== 方式一：AppKey 签名调用（带参数） =====");
-        callWithAppKey("{\"contract_name\": \"协议\"}");
+        callWithAppKey("{\"contract_name\": \"测试\"}");
 
         System.out.println();
         System.out.println("===== 方式二：AppCode 简单调用（带参数） =====");
-        callWithAppCode("contract_name=协议");
+        callWithAppCode("contract_name=测试");
     }
 
     /**

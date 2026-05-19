@@ -1,19 +1,23 @@
 <template>
   <div class="doc-center">
-    <!-- Doc TopBar -->
-    <div class="doc-topbar">
-      <div class="doc-topbar__left">
-        <div class="doc-logo">D</div>
-        <span class="doc-title">API 文档中心</span>
-      </div>
-      <router-link to="/datasources" class="doc-back">返回控制台</router-link>
-    </div>
-
     <div class="doc-body">
       <!-- Left: API Nav Tree -->
       <div class="doc-nav">
         <el-input v-model="searchKey" placeholder="搜索 API" clearable size="small" style="margin-bottom: 12px" />
-        <div class="doc-nav-tree">
+        <div v-if="loadingTree" class="doc-nav-state">
+          <el-icon class="is-loading"><Loading /></el-icon>
+          <span>加载中</span>
+        </div>
+        <el-alert
+          v-else-if="treeError"
+          :title="treeError"
+          type="error"
+          :closable="false"
+          show-icon
+          class="doc-nav-alert"
+        />
+        <el-empty v-else-if="filteredTree.length === 0" description="暂无已发布 API" :image-size="80" />
+        <div v-else class="doc-nav-tree">
           <template v-for="group in filteredTree" :key="group.groupId">
             <div class="doc-nav-group" @click="group._collapsed = !group._collapsed">
               <el-icon><CaretRight v-if="group._collapsed" /><CaretBottom v-else /></el-icon>
@@ -28,7 +32,7 @@
                 :class="{ active: selectedApiId === api.id }"
                 @click="selectApi(api.id)"
               >
-                <el-tag :type="METHOD_COLORS[api.method] || 'info'" size="small" class="doc-nav-method">{{ api.method }}</el-tag>
+                <el-tag :color="METHOD_COLORS[api.method]" effect="dark" size="small" class="doc-nav-method">{{ api.method }}</el-tag>
                 <span class="doc-nav-name">{{ api.name }}</span>
               </div>
             </template>
@@ -39,7 +43,7 @@
       <!-- Middle: Doc Content -->
       <div class="doc-content" v-if="apiDetail">
         <div class="doc-content-header">
-          <el-tag :type="METHOD_COLORS[apiDetail.method] || 'info'" size="large">{{ apiDetail.method }}</el-tag>
+          <el-tag :color="METHOD_COLORS[apiDetail.method]" effect="dark" size="large">{{ apiDetail.method }}</el-tag>
           <h2 style="margin-left: 12px">{{ apiDetail.name }}</h2>
         </div>
         <div class="doc-path">{{ apiDetail.path }}</div>
@@ -99,16 +103,32 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { CaretRight, CaretBottom } from '@element-plus/icons-vue'
+import { CaretRight, CaretBottom, Loading } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
-import { getDocApiTree, getDocApiDetail, tryDocApi } from '@/api/doc'
+import { callGatewayApi, getDocApiTree, getDocApiDetail } from '@/api/doc'
 import { METHOD_COLORS } from '@/utils/constants'
 import type { DocApiTreeNode, DocApiDetailVO } from '@/types/doc'
+
+type DocNavGroup = DocApiTreeNode & { _collapsed: boolean }
+type RawDocTreeNode = {
+  id?: string | number
+  apiId?: number
+  groupId?: number
+  name?: string
+  groupName?: string
+  method?: string
+  path?: string
+  type?: string
+  apis?: DocApiTreeNode['apis']
+  children?: RawDocTreeNode[]
+}
 
 const route = useRoute()
 const router = useRouter()
 const searchKey = ref('')
-const tree = ref<any[]>([])
+const tree = ref<DocNavGroup[]>([])
+const loadingTree = ref(false)
+const treeError = ref('')
 const selectedApiId = ref(0)
 const apiDetail = ref<DocApiDetailVO | null>(null)
 const tryExpanded = ref(false)
@@ -123,7 +143,7 @@ const filteredTree = computed(() => {
   return tree.value
     .map(g => ({
       ...g,
-      apis: g.apis.filter((a: any) => a.name.toLowerCase().includes(key) || a.path?.toLowerCase().includes(key)),
+      apis: g.apis.filter(a => a.name.toLowerCase().includes(key) || a.path?.toLowerCase().includes(key)),
     }))
     .filter(g => g.apis.length > 0)
 })
@@ -131,9 +151,18 @@ const filteredTree = computed(() => {
 const curlExample = computed(() => {
   if (!apiDetail.value) return ''
   const d = apiDetail.value
-  const paramStr = (d.params || []).map(p => `${p.name}=${p.example || '{value}'}`).join('&')
-  const url = `http://localhost:8080${d.path}${paramStr ? '?' + paramStr : ''}`
+  const queryParams = (d.params || []).filter(p => p.location === 'QUERY')
+  const paramStr = queryParams
+    .map(p => `${encodeURIComponent(p.name)}=${formatQueryValue(p.example || p.defaultValue || '{value}')}`)
+    .join('&')
+  const url = `${actualApiUrl.value}${paramStr ? '?' + paramStr : ''}`
   return `curl -X ${d.method} '${url}' \\\n  -H 'X-App-Code: {your-app-code}'`
+})
+
+const actualApiUrl = computed(() => {
+  if (!apiDetail.value) return ''
+  const gatewayBaseUrl = getGatewayBaseUrl()
+  return joinUrl(gatewayBaseUrl, getGatewayPath(apiDetail.value.path, gatewayBaseUrl))
 })
 
 const responseExample = computed(() => {
@@ -144,17 +173,27 @@ const responseExample = computed(() => {
   })
   return JSON.stringify({
     code: 0,
-    message: 'success',
-    data: { records: [fields], total: 1 },
+    message: 'ok',
+    data: [fields],
+    traceId: 'tr_1779154000832_v6i2z9',
   }, null, 2)
 })
 
 async function fetchTree() {
-  const data = await getDocApiTree()
-  tree.value = data.map((g: any) => ({ ...g, _collapsed: false }))
-  // auto-select from route
-  if (route.params.id) {
-    selectApi(Number(route.params.id))
+  loadingTree.value = true
+  treeError.value = ''
+  try {
+    const data = await getDocApiTree()
+    tree.value = normalizeDocTree(data)
+    // auto-select from route
+    if (route.params.id) {
+      await selectApi(Number(route.params.id))
+    }
+  } catch (e: any) {
+    tree.value = []
+    treeError.value = e.response?.data?.message || e.message || '文档列表加载失败'
+  } finally {
+    loadingTree.value = false
   }
 }
 
@@ -162,12 +201,17 @@ async function selectApi(id: number) {
   selectedApiId.value = id
   tryExpanded.value = false
   tryResponse.value = ''
-  apiDetail.value = await getDocApiDetail(id)
-  tryParams.value = {}
-  ;(apiDetail.value?.params || []).forEach(p => {
-    tryParams.value[p.name] = p.example || p.defaultValue || ''
-  })
-  router.replace(`/docs/${id}`)
+  try {
+    apiDetail.value = await getDocApiDetail(id)
+    tryParams.value = {}
+    ;(apiDetail.value?.params || []).forEach(p => {
+      tryParams.value[p.name] = p.example || p.defaultValue || ''
+    })
+    router.replace(`/docs/${id}`)
+  } catch (e: any) {
+    apiDetail.value = null
+    ElMessage.error(e.response?.data?.message || e.message || '文档详情加载失败')
+  }
 }
 
 async function handleTry() {
@@ -177,10 +221,11 @@ async function handleTry() {
   }
   trying.value = true
   try {
-    const res = await tryDocApi(selectedApiId.value, tryParams.value, tryAppCode.value)
+    const requestOptions = buildGatewayTryRequest()
+    const res = await callGatewayApi(requestOptions)
     tryResponse.value = typeof res === 'string' ? res : JSON.stringify(res, null, 2)
   } catch (e: any) {
-    tryResponse.value = e.message || '请求失败'
+    tryResponse.value = JSON.stringify(e.response?.data || { message: e.message || '请求失败' }, null, 2)
   } finally {
     trying.value = false
   }
@@ -192,35 +237,164 @@ watch(() => route.params.id, (newId) => {
   }
 })
 
+function normalizeDocTree(data: unknown): DocNavGroup[] {
+  if (!Array.isArray(data)) return []
+  const normalized: DocNavGroup[] = []
+  const ungroupedApis: DocApiTreeNode['apis'] = []
+
+  const appendGroup = (node: RawDocTreeNode, fallbackIndex: number) => {
+    const apis: DocApiTreeNode['apis'] = []
+    const children = Array.isArray(node.children) ? node.children : []
+
+    children.forEach(child => {
+      if (child.type === 'api' || child.apiId) {
+        const apiId = child.apiId ?? Number(String(child.id || '').replace(/^api_/, ''))
+        if (Number.isFinite(apiId)) {
+          apis.push({
+            id: apiId,
+            name: child.name || '',
+            method: child.method || 'GET',
+            path: child.path || '',
+          })
+        }
+      } else {
+        appendGroup(child, normalized.length)
+      }
+    })
+
+    if (Array.isArray(node.apis)) {
+      apis.push(...node.apis)
+    }
+
+    if (apis.length > 0) {
+      normalized.push({
+        groupId: node.groupId ?? Number(String(node.id || fallbackIndex).replace(/^group_/, '')),
+        groupName: node.groupName || node.name || '未分组',
+        apis,
+        _collapsed: false,
+      })
+    }
+  }
+
+  ;(data as RawDocTreeNode[]).forEach((node, index) => {
+    if (node.type === 'api' || node.apiId) {
+      const apiId = node.apiId ?? Number(String(node.id || '').replace(/^api_/, ''))
+      if (Number.isFinite(apiId)) {
+        ungroupedApis.push({
+          id: apiId,
+          name: node.name || '',
+          method: node.method || 'GET',
+          path: node.path || '',
+        })
+      }
+    } else {
+      appendGroup(node, index)
+    }
+  })
+
+  if (ungroupedApis.length > 0) {
+    normalized.unshift({
+      groupId: 0,
+      groupName: '未分组',
+      apis: ungroupedApis,
+      _collapsed: false,
+    })
+  }
+
+  return normalized
+}
+
+function buildGatewayTryRequest() {
+  if (!apiDetail.value) {
+    throw new Error('请先选择 API')
+  }
+
+  let url = actualApiUrl.value
+  const method = apiDetail.value.method.toUpperCase()
+  const query: Record<string, any> = {}
+  const body: Record<string, any> = {}
+  const headers: Record<string, string> = { 'X-App-Code': tryAppCode.value }
+
+  ;(apiDetail.value.params || []).forEach(param => {
+    const value = tryParams.value[param.name]
+    if (value === undefined || value === '') return
+
+    if (param.location === 'PATH') {
+      url = replacePathParam(url, param.name, value)
+    } else if (param.location === 'HEADER') {
+      headers[param.name] = value
+    } else if (param.location === 'BODY') {
+      body[param.name] = value
+    } else {
+      query[param.name] = value
+    }
+  })
+
+  return {
+    url,
+    method,
+    query,
+    body: Object.keys(body).length > 0 ? body : undefined,
+    headers,
+  }
+}
+
+function replacePathParam(url: string, name: string, value: string) {
+  const encodedValue = encodeURIComponent(value)
+  return url
+    .replace(new RegExp(`:${name}(?=/|$)`, 'g'), encodedValue)
+    .replace(new RegExp(`\\{${name}\\}`, 'g'), encodedValue)
+}
+
+function getGatewayBaseUrl() {
+  const gatewayBaseUrl = String(import.meta.env.VITE_GATEWAY_BASE_URL || '').trim()
+  if (gatewayBaseUrl) return gatewayBaseUrl
+  const apiBaseUrl = String(import.meta.env.VITE_API_BASE_URL || '').trim()
+  if (apiBaseUrl) return apiBaseUrl
+  return window.location.origin
+}
+
+function getGatewayPath(path: string, baseUrl: string) {
+  const cleanPath = String(path || '').trim().replace(/^\/+/, '')
+  if (!cleanPath) return '/gateway'
+  if (baseUrlHasGatewayPrefix(baseUrl)) {
+    return `/${cleanPath.replace(/^gateway\/?/i, '')}`
+  }
+  return cleanPath.startsWith('gateway/') ? `/${cleanPath}` : `/gateway/${cleanPath}`
+}
+
+function baseUrlHasGatewayPrefix(baseUrl: string) {
+  try {
+    return new URL(baseUrl).pathname.replace(/\/+$/, '').endsWith('/gateway')
+  } catch {
+    return baseUrl.replace(/\/+$/, '').endsWith('/gateway')
+  }
+}
+
+function joinUrl(baseUrl: string, path: string) {
+  return `${baseUrl.replace(/\/+$/, '')}/${path.replace(/^\/+/, '')}`
+}
+
+function formatQueryValue(value: string) {
+  return value === '{value}' ? value : encodeURIComponent(value)
+}
+
 onMounted(fetchTree)
 </script>
 
 <style scoped>
-.doc-center { display: flex; flex-direction: column; height: 100vh; background: #fff; }
-.doc-topbar {
-  height: 56px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 24px;
-  border-bottom: 1px solid #e8e8e8;
-  flex-shrink: 0;
-}
-.doc-topbar__left { display: flex; align-items: center; gap: 12px; }
-.doc-logo {
-  width: 32px; height: 32px; background: #2878FF; color: #fff;
-  border-radius: 6px; display: flex; align-items: center; justify-content: center;
-  font-weight: 700; font-size: 18px;
-}
-.doc-title { font-size: 16px; font-weight: 600; }
-.doc-back { color: #2878FF; text-decoration: none; font-size: 14px; }
-
+.doc-center { display: flex; flex-direction: column; height: 100%; background: #fff; }
 .doc-body { display: flex; flex: 1; overflow: hidden; }
 
 .doc-nav {
   width: 220px; flex-shrink: 0; border-right: 1px solid #e8e8e8;
   padding: 16px; overflow-y: auto;
 }
+.doc-nav-state {
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  color: #909399; font-size: 13px; padding: 32px 0;
+}
+.doc-nav-alert { margin-top: 8px; }
 .doc-nav-group {
   display: flex; align-items: center; gap: 4px; padding: 8px 0;
   font-weight: 600; font-size: 13px; cursor: pointer; color: #333;

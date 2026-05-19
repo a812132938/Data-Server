@@ -31,7 +31,8 @@ export interface LogDetailVO extends LogVO {
 }
 
 export interface StatsOverview {
-  todayCount: number
+  todayCount?: number
+  todayCalls?: number
   successRate: number
   avgCost: number
   errorCount: number

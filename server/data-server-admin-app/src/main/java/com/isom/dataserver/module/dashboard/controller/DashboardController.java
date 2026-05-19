@@ -32,20 +32,25 @@ public class DashboardController {
 
     @ApiOperation("查询状态分布")
     @GetMapping("/api/v1/dashboard/status-dist")
-    public Result<StatusDistVO> statusDist() {
-        return Result.ok(dashboardService.statusDist());
+    public Result<StatusDistVO> statusDist(
+            @ApiParam("时间范围（7d/30d）") @RequestParam(required = false, defaultValue = "7d") String timeRange) {
+        return Result.ok(dashboardService.statusDist(timeRange));
     }
 
     @ApiOperation("查询调用量TOP API排行")
     @GetMapping("/api/v1/dashboard/top-api")
-    public Result<TopRankVO> topApi(@ApiParam("排行数量") @RequestParam(defaultValue = "10") int limit) {
-        return Result.ok(dashboardService.topApi(limit));
+    public Result<TopRankVO> topApi(
+            @ApiParam("时间范围（7d/30d）") @RequestParam(required = false, defaultValue = "7d") String timeRange,
+            @ApiParam("排行数量") @RequestParam(defaultValue = "10") int limit) {
+        return Result.ok(dashboardService.topApi(timeRange, limit));
     }
 
     @ApiOperation("查询调用量TOP应用排行")
     @GetMapping("/api/v1/dashboard/top-app")
-    public Result<TopRankVO> topApp(@ApiParam("排行数量") @RequestParam(defaultValue = "10") int limit) {
-        return Result.ok(dashboardService.topApp(limit));
+    public Result<TopRankVO> topApp(
+            @ApiParam("时间范围（7d/30d）") @RequestParam(required = false, defaultValue = "7d") String timeRange,
+            @ApiParam("排行数量") @RequestParam(defaultValue = "10") int limit) {
+        return Result.ok(dashboardService.topApp(timeRange, limit));
     }
 
     @ApiOperation("查询总览数据")

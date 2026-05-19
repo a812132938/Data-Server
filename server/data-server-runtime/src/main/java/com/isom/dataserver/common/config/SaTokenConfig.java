@@ -15,7 +15,8 @@ public class SaTokenConfig implements WebMvcConfigurer {
             SaRouter.match("/api/v1/**")
                     .notMatch(
                             "/api/v1/user/register",
-                            "/api/v1/user/login"
+                            "/api/v1/user/login",
+                            "/api/v1/docs/**"
                     )
                     .check(r -> StpUtil.checkLogin());
         })).addPathPatterns("/**");

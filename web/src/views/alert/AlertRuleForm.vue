@@ -48,8 +48,6 @@
       <el-form-item label="通知渠道">
         <el-checkbox-group v-model="form.channels">
           <el-checkbox value="SITE" label="站内信" disabled />
-          <el-checkbox value="EMAIL" label="邮件" />
-          <el-checkbox value="SMS" label="短信" />
         </el-checkbox-group>
       </el-form-item>
       <el-form-item label="接收人">

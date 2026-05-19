@@ -30,11 +30,13 @@
         <div v-if="inspectTable" class="column-list">
           <div class="column-title">{{ inspectTable.name }} 字段</div>
           <div v-for="col in inspectTable.columns" :key="col.name" class="column-item">
-            <span class="column-name">{{ col.name }}</span>
-            <el-tag size="small" type="info">{{ col.type }}</el-tag>
-            <el-tag v-if="isPk(col)" size="small" type="warning">PK</el-tag>
-            <el-tag v-if="isFk(inspectTable.name, col.name)" size="small" type="success">FK</el-tag>
-            <el-tag v-if="hasIndex(inspectTable, col.name)" size="small">IDX</el-tag>
+            <span class="column-name" :title="col.name">{{ col.name }}</span>
+            <span class="column-meta">
+              <el-tag size="small" type="info">{{ col.type }}</el-tag>
+              <el-tag v-if="isPk(col)" size="small" type="warning">PK</el-tag>
+              <el-tag v-if="isFk(inspectTable.name, col.name)" size="small" type="success">FK</el-tag>
+              <el-tag v-if="hasIndex(inspectTable, col.name)" size="small">IDX</el-tag>
+            </span>
           </div>
         </div>
       </section>
@@ -102,7 +104,7 @@
       <section class="field-picker">
         <div class="block-title">输出字段</div>
         <div v-if="joinedFields.length === 0" class="empty-tip">请先选择主表或关联表</div>
-        <el-table v-else :data="joinedFields" border height="420">
+        <el-table v-else :data="displayedFields" row-key="key" border height="420">
           <el-table-column label="选择" width="64">
             <template #default="{ row }">
               <el-checkbox :model-value="isSelected(row)" @change="toggleField(row, $event)" />
@@ -111,6 +113,19 @@
           <el-table-column prop="tableAlias" label="表别名" width="82" />
           <el-table-column prop="field" label="字段" min-width="130" />
           <el-table-column prop="type" label="类型" width="110" />
+          <el-table-column label="排序" width="110">
+            <template #default="{ row }">
+              <el-input-number
+                :model-value="getSelectOrder(row)"
+                size="small"
+                :min="1"
+                :max="design.selectFields.length || 1"
+                :disabled="!isSelected(row)"
+                controls-position="right"
+                @change="updateSelectOrder(row, $event)"
+              />
+            </template>
+          </el-table-column>
           <el-table-column label="输出别名" width="150">
             <template #default="{ row }">
               <el-input
@@ -191,6 +206,25 @@ const joinedFields = computed(() => {
       key: `${item.alias}.${col.name}`,
     }))
   })
+})
+const displayedFields = computed(() => {
+  const selectedOrder = new Map(
+    design.value.selectFields.map((field: any, index: number) => [`${field.tableAlias}.${field.field}`, index])
+  )
+  return joinedFields.value
+    .map((field, index) => ({
+      ...field,
+      originalIndex: index,
+      selectOrder: selectedOrder.get(field.key),
+    }))
+    .sort((a, b) => {
+      const aSelected = a.selectOrder != null
+      const bSelected = b.selectOrder != null
+      if (aSelected && bSelected) return Number(a.selectOrder) - Number(b.selectOrder)
+      if (aSelected) return -1
+      if (bSelected) return 1
+      return a.originalIndex - b.originalIndex
+    })
 })
 const joinFieldOptions = computed(() => joinedFields.value.map((field) => ({
   label: `${field.tableAlias}.${field.field} (${field.tableName})`,
@@ -334,6 +368,11 @@ function getSelectAlias(row: any) {
   return design.value.selectFields.find((field: any) => field.tableAlias === row.tableAlias && field.field === row.field)?.alias || ''
 }
 
+function getSelectOrder(row: any) {
+  const index = design.value.selectFields.findIndex((field: any) => field.tableAlias === row.tableAlias && field.field === row.field)
+  return index >= 0 ? index + 1 : undefined
+}
+
 function toggleField(row: any, checked: string | number | boolean) {
   if (checked) {
     if (!isSelected(row)) {
@@ -348,6 +387,16 @@ function toggleField(row: any, checked: string | number | boolean) {
   } else {
     design.value.selectFields = design.value.selectFields.filter((field: any) => !(field.tableAlias === row.tableAlias && field.field === row.field))
   }
+  syncSelectedColumns()
+}
+
+function updateSelectOrder(row: any, order: number | undefined) {
+  const currentIndex = design.value.selectFields.findIndex((field: any) => field.tableAlias === row.tableAlias && field.field === row.field)
+  if (currentIndex < 0 || order == null) return
+  const nextIndex = Math.min(Math.max(Number(order) - 1, 0), design.value.selectFields.length - 1)
+  if (nextIndex === currentIndex) return
+  const [field] = design.value.selectFields.splice(currentIndex, 1)
+  design.value.selectFields.splice(nextIndex, 0, field)
   syncSelectedColumns()
 }
 
@@ -465,8 +514,16 @@ async function handlePreview() {
   p { margin: 0; color: #86909C; font-size: 13px; }
 }
 .toolbar-actions { display: flex; gap: 8px; }
-.join-layout { display: grid; grid-template-columns: 260px minmax(360px, 1fr) minmax(420px, 1.1fr); gap: 16px; align-items: start; }
+.join-layout {
+  display: grid;
+  grid-template-columns: minmax(430px, 460px) minmax(360px, 1fr) minmax(820px, 1.1fr);
+  gap: 16px;
+  align-items: start;
+  overflow-x: auto;
+  padding-bottom: 8px;
+}
 .table-browser, .join-config, .field-picker { min-width: 0; }
+.field-picker { min-width: 820px; }
 .table-list { margin-top: 10px; max-height: 220px; overflow: auto; border: 1px solid #E5E6EB; border-radius: 6px; }
 .table-item { width: 100%; border: 0; background: #fff; text-align: left; padding: 8px 10px; cursor: pointer; display: flex; flex-direction: column; gap: 2px;
   &:hover { background: #F7F8FA; }
@@ -475,8 +532,9 @@ async function handlePreview() {
 }
 .column-list { margin-top: 12px; border: 1px solid #E5E6EB; border-radius: 6px; padding: 10px; max-height: 260px; overflow: auto; }
 .column-title, .block-title { font-weight: 600; margin-bottom: 10px; }
-.column-item { display: flex; align-items: center; gap: 6px; padding: 5px 0; font-size: 13px; }
-.column-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.column-item { display: grid; grid-template-columns: minmax(180px, 1fr) max-content; align-items: start; gap: 8px; padding: 5px 0; font-size: 13px; }
+.column-name { min-width: 0; line-height: 22px; overflow-wrap: anywhere; word-break: break-word; }
+.column-meta { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 4px; max-width: 210px; }
 .config-block { margin-bottom: 16px; }
 .block-heading { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
 .form-row, .join-row, .condition-row { display: flex; align-items: center; gap: 8px; }
@@ -490,7 +548,13 @@ async function handlePreview() {
 .preview-collapse { margin-top: 4px; }
 .sql-preview { margin: 0; padding: 12px; background: #F7F8FA; border: 1px solid #E5E6EB; border-radius: 6px; white-space: pre-wrap; font-family: Consolas, monospace; font-size: 12px; line-height: 1.5; }
 @media (max-width: 1280px) {
-  .join-layout { grid-template-columns: 240px 1fr; }
+  .join-layout { grid-template-columns: minmax(380px, 420px) 1fr; }
   .field-picker { grid-column: 1 / -1; }
+}
+
+@media (max-width: 960px) {
+  .join-layout { grid-template-columns: minmax(820px, 1fr); }
+  .table-browser, .join-config, .field-picker { min-width: 820px; }
+  .field-picker { grid-column: auto; }
 }
 </style>

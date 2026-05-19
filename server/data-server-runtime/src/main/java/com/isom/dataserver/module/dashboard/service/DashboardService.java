@@ -8,8 +8,8 @@ import java.util.Map;
 
 public interface DashboardService {
     TrendVO trend(String startDate, String endDate);
-    StatusDistVO statusDist();
-    TopRankVO topApi(int limit);
-    TopRankVO topApp(int limit);
+    StatusDistVO statusDist(String timeRange);
+    TopRankVO topApi(String timeRange, int limit);
+    TopRankVO topApp(String timeRange, int limit);
     Map<String, Object> overview();
 }

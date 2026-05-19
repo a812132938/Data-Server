@@ -1,8 +1,16 @@
 import request from './request'
+import dayjs from 'dayjs'
 import type { TrendItem, StatusDistItem, TopApiItem, TopAppItem } from '@/types/dashboard'
 
 export function getDashboardTrend(timeRange: '7d' | '30d') {
-  return request.get<any, { records: TrendItem[] }>('/api/v1/dashboard/trend', { params: { timeRange } })
+  const days = timeRange === '30d' ? 30 : 7
+  return request.get<any, { records: TrendItem[] }>('/api/v1/dashboard/trend', {
+    params: {
+      timeRange,
+      startDate: dayjs().subtract(days - 1, 'day').format('YYYY-MM-DD'),
+      endDate: dayjs().format('YYYY-MM-DD'),
+    },
+  })
 }
 
 export function getStatusDist(params?: { date?: string; timeRange?: string; apiId?: number }) {

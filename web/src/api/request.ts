@@ -38,8 +38,9 @@ service.interceptors.response.use(
       removeToken()
       // 动态 import 避免与 router 循环依赖
       import('@/router').then(({ default: router }) => {
-        const redirect = router.currentRoute.value.fullPath
-        if (router.currentRoute.value.name !== 'Login') {
+        const currentRoute = router.currentRoute.value
+        const redirect = currentRoute.fullPath
+        if (currentRoute.name !== 'Login' && !currentRoute.meta.public) {
           router.replace({ name: 'Login', query: { redirect } })
         }
       })
